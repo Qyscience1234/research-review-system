@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-g">
+    <title>科研审查系统API测试</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+        h1, h2 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        form { margin-bottom: 20px; }
+        label, input, button { font-size: 16px; padding: 5px; margin: 5px 0; }
+        #projects-data { background-color: #f4f4f4; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h1>前端API交互演示</h1>
+
+    <h2>第一步: 登录</h2>
+    <form id="login-form">
+        <div>
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" value="pioneer_one" required>
+        </div>
+        <div>
+            <label for="password">密 码:</label>
+            <input type="password" id="password" name="password" value="a_secure_password123" required>
+        </div>
+        <button type="submit">登录</button>
+    </form>
+
+    <h2>第二步: 获取我的项目列表</h2>
+    <button id="fetch-projects-btn">点击获取</button>
+    <h3>项目数据:</h3>
+    <pre><code id="projects-data">(请先登录，然后点击获取按钮)</code></pre>
+
+    <script>
+        // --- JavaScript代码开始 ---
+
+        // 获取页面上的元素
+        const loginForm = document.getElementById('login-form');
+        const fetchProjectsBtn = document.getElementById('fetch-projects-btn');
+        const projectsDataEl = document.getElementById('projects-data');
+
+        // 用于存储登录后获取的Token
+        let authToken = null;
+
+        // 1. 为登录表单添加提交事件监听
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // 阻止表单默认的刷新页面行为
+
+            const username = loginForm.username.value;
+            const password = loginForm.password.value;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: username, password: password }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('登录失败，请检查用户名或密码！');
+                }
+
+                const data = await response.json();
+                authToken = data.key; // 保存获取到的Token
+
+                alert('登录成功！Token已保存。现在可以获取项目列表了。');
+                console.log('获取到的Token:', authToken);
+
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        // 2. 为获取项目按钮添加点击事件监听
+        fetchProjectsBtn.addEventListener('click', async () => {
+            if (!authToken) {
+                alert('请先登录！');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/projects/', {
+                    method: 'GET',
+                    headers: {
+                        // 发送请求时，在Header中带上我们的Token
+                        'Authorization': `Token ${authToken}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('获取项目失败！');
+                }
+
+                const data = await response.json();
+                // 将返回的JSON数据格式化后显示在页面上
+                projectsDataEl.textContent = JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+    </script>
+</body>
+</html>
