@@ -4,3 +4,7 @@ django-cors-headers
 dj-rest-auth
 django-allauth
 requests
+gunicorn
+psycopg2-binary
+dj-database-url
+whitenoise
