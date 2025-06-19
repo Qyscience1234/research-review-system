@@ -1,7 +1,8 @@
 # api/serializers.py
 
 from rest_framework import serializers
-from .models import Project, User, Review, ProjectFile
+from django.contrib.auth.models import User, Group
+from .models import Project, Review, ProjectFile
 
 # --- 1. 基础序列化器 ---
 class UserSerializer(serializers.ModelSerializer):
@@ -28,7 +29,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     principal_investigator = serializers.StringRelatedField(read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     files = ProjectFileSerializer(many=True, read_only=True)
-    reviews = NestedReviewSerializer(many=True, read_only=True) # 使用专用的嵌套序列化器
+    reviews = NestedReviewSerializer(many=True, read_only=True)
 
     class Meta:
         model = Project
@@ -38,9 +39,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['status', 'principal_investigator']
 
-# --- 4. 专门为专家列表提供的、嵌套了完整项目信息的Review序列化器 (关键新增) ---
+# --- 4. 专门为专家列表提供的、嵌套了完整项目信息的Review序列化器 ---
 class ExpertReviewListSerializer(serializers.ModelSerializer):
-    project = ProjectSerializer(read_only=True) # 嵌套完整的项目信息
+    project = ProjectSerializer(read_only=True)
 
     class Meta:
         model = Review
@@ -56,3 +57,17 @@ class AdminDecisionSerializer(serializers.Serializer):
     ]
     status = serializers.ChoiceField(choices=FINAL_STATUS_CHOICES)
     admin_notes = serializers.CharField(required=True, allow_blank=False)
+
+# --- 6. 用于 dj-rest-auth 的自定义用户详情序列化器 ---
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ("name",)
+
+class CustomUserDetailsSerializer(serializers.ModelSerializer):
+    groups = GroupSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('pk', 'username', 'email', 'groups')
+        read_only_fields = ('pk', 'email', 'groups')

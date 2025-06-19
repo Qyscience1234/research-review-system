@@ -60,9 +60,10 @@
         }
 
         // --- 登录页面组件 ---
+        // --- 登录页面组件 ---
         function LoginPage({ onLoginSuccess }) {
-            const [username, setUsername] = useState('expert_one'); 
-            const [password, setPassword] = useState('a_secure_password123');
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState('');
             const isMounted = useRef(true);
@@ -73,33 +74,42 @@
             }, []);
 
             const handleSubmit = async (event) => {
-                event.preventDefault(); 
-                setIsLoading(true); 
-                setError('');
+                event.preventDefault(); setIsLoading(true); setError('');
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/auth/login/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),});
-                    if (!response.ok) { 
-                        const d = await response.json(); 
-                        throw new Error(d.non_field_errors?.[0] || '登录失败');
-                    }
-                    const data = await response.json(); 
-                    onLoginSuccess(data.key);
-                } catch (err) { 
-                    if (isMounted.current) setError(err.message); 
-                } finally { 
-                    if (isMounted.current) setIsLoading(false); 
-                }
+                    if (!response.ok) { const d = await response.json(); throw new Error(d.non_field_errors?.[0] || '登录失败');}
+                    const data = await response.json(); onLoginSuccess(data.key);
+                } catch (err) { if (isMounted.current) setError(err.message); } finally { if (isMounted.current) setIsLoading(false); }
             };
+            
+            //  定义背景图URL
+            const backgroundImageUrl = 'https://uy.wzznft.com/i/2025/06/18/no7jc8.png';
+
             return (
-                <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                    <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-                        <h1 className="text-2xl font-bold text-center text-gray-800">科研项目审查系统</h1>
-                        <h2 className="text-center text-gray-500">审核专家登录</h2>
+                //  应用背景图和布局
+                <div 
+                    className="flex items-center justify-center min-h-screen bg-cover bg-center"
+                    style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
+                >
+                    {/* 应用毛玻璃效果和新样式 */}
+                    <div className="w-full max-w-md p-8 space-y-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200">
+                        <h1 className="text-3xl font-bold text-center text-gray-900">科研项目审查系统</h1>
+                        <h2 className="text-center text-gray-600">审核专家登录</h2>
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            <div><label htmlFor="username">用户名</label><input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm" required /></div>
-                            <div><label htmlFor="password-input">密码</label><input id="password-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm" required /></div>
-                            {error && <p className="text-sm text-red-600">{error}</p>}
-                            <div><button type="submit" disabled={isLoading} className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 disabled:bg-gray-400">{isLoading ? '登录中...' : '登 录'}</button></div>
+                            <div>
+                                <label htmlFor="username" className="text-sm font-medium text-gray-700">用户名</label>
+                                <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 mt-1 bg-white/70 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label htmlFor="password-input" className="text-sm font-medium text-gray-700">密码</label>
+                                <input id="password-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 mt-1 bg-white/70 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            {error && <p className="text-sm text-center text-red-600 bg-red-100 p-2 rounded-md">{error}</p>}
+                            <div>
+                                <button type="submit" disabled={isLoading} className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 transition-colors duration-300">
+                                    {isLoading ? '登录中...' : '登 录'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

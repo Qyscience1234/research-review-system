@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科研项目审查系统 - 统一登录入口</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body 
+    class="flex items-center justify-center min-h-screen bg-cover bg-center"
+    style="background-image: url('https://uy.wzznft.com/i/2025/06/18/no7jc8.png');"
+>
+    <div class="w-full max-w-4xl p-8 sm:p-12 space-y-10 bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50 text-center">
+
+        <h1 class="text-4xl sm:text-5xl font-bold text-gray-900">
+            科研项目审查系统
+        </h1>
+
+        <p class="text-lg text-gray-600">
+            请选择您的登录身份
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+
+            <a href="/pi_dashboard.html" class="block p-8 bg-white/70 rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+                <div class="flex flex-col items-center justify-center space-y-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <h2 class="text-xl font-semibold text-gray-800">项目负责人</h2>
+                </div>
+            </a>
+
+            <a href="/expert_dashboard.html" class="block p-8 bg-white/70 rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+                <div class="flex flex-col items-center justify-center space-y-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600">
+                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m21.22 15.88-2.53-2.53a1.5 1.5 0 0 0-2.12 0l-.88.88a1.5 1.5 0 0 1-2.12 0l-1.42-1.42a1.5 1.5 0 0 0-2.12 0l-2.53 2.53"></path>
+                    </svg>
+                    <h2 class="text-xl font-semibold text-gray-800">审核专家</h2>
+                </div>
+            </a>
+
+            <a href="/admin_dashboard.html" class="block p-8 bg-white/70 rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+                <div class="flex flex-col items-center justify-center space-y-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <h2 class="text-xl font-semibold text-gray-800">单位管理员</h2>
+                </div>
+            </a>
+
+        </div>
+    </div>
+</body>
+</html>

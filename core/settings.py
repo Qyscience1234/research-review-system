@@ -119,6 +119,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
+    'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
 }
 
 # django-allauth 需要这个设置
