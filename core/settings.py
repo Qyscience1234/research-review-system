@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount', 
     'dj_rest_auth.registration',
     'api',
+    # --- 新增：添加django-oss-storage ---
+    'django_oss_storage',
 ]
 
 MIDDLEWARE = [
@@ -101,14 +103,38 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images) & Media Files
 STATIC_URL = 'static/'
-# --- 生产环境修改：添加静态文件相关配置 ---
+
+# --- 生产环境 vs 开发环境 配置分离 ---
 if not DEBUG:
-    # 告诉Django将所有静态文件收集到这个名为 'staticfiles' 的目录中
+    # --- 生产环境配置 (Production) ---
+    
+    # 1. 静态文件配置 (WhiteNoise)
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    # 启用WhiteNoise的高效压缩和缓存功能
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # 2. 媒体文件配置 (阿里云 OSS)
+    DEFAULT_FILE_STORAGE = 'django_oss_storage.storage.OssMediaStorage'
+    OSS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
+    OSS_ACCESS_KEY_SECRET = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
+    OSS_BUCKET_NAME = 'research-review-system-qt'  # <--- 请替换为您的Bucket名称
+    OSS_ENDPOINT = 'https://oss-cn-chengdu.aliyuncs.com' # <--- 请根据您的Bucket区域替换
+    
+    # 3. 跨域请求安全配置 (CORS)
+    CORS_ALLOWED_ORIGINS = [
+        'https://research-review-system.vercel.app', # <--- 请替换为您的Vercel前端网址
+    ]
+
+else:
+    # --- 开发环境配置 (Development) ---
+    
+    # 1. 媒体文件配置 (本地存储)
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    
+    # 2. 跨域请求配置 (允许所有，方便开发)
+    CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Default primary key field type
@@ -127,10 +153,3 @@ SITE_ID = 1
 
 # 在开发阶段，我们暂时设置为无需邮件验证，方便测试
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-
-# 配置用户上传文件（媒体文件）的URL访问路径和磁盘存储路径
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# 允许所有来源的跨域请求（仅限开发环境使用，非常方便）
-CORS_ALLOW_ALL_ORIGINS = True
