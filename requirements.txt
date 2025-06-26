@@ -16,6 +16,7 @@ djangorestframework==3.16.0
 idna==3.10
 jmespath==0.10.0
 oss2==2.19.1
+psycopg2-binary==2.9.10
 pycparser==2.22
 pycryptodome==3.23.0
 requests==2.32.4
