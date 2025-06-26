@@ -114,19 +114,17 @@ if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # 2. 媒体文件配置 (阿里云 OSS)
+    # 2. 媒体文件配置 (阿里云 OSS) - [关键修改]
     DEFAULT_FILE_STORAGE = 'django_oss_storage.storage.OssMediaStorage'
     OSS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
     OSS_ACCESS_KEY_SECRET = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
     
-    # --- 以下是关键修改 ---
     OSS_BUCKET_NAME = 'research-review-system-qt'  # <--- 请替换为您的Bucket名称
-    # Endpoint 只需填写域名部分，不要加 https://
+    # Endpoint现在需要包含协议 'https://'
     OSS_ENDPOINT = 'oss-cn-chengdu.aliyuncs.com' # <--- 请根据您的Bucket区域替换
     
-    # 我们在这里手动构建一个完整的、绝对的MEDIA_URL
-    # 这样可以确保Django在任何情况下都生成指向OSS的正确URL
-    MEDIA_URL = f'https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/media/'
+    # MEDIA_URL 设置为桶内的一个文件夹路径，库会自动拼接域名
+    MEDIA_URL = '/media/'
 
     # 3. 跨域请求安全配置 (CORS)
     CORS_ALLOWED_ORIGINS = [
