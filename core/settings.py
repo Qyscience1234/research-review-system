@@ -103,7 +103,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images) & Media Files
+# --- Static files (CSS, JavaScript, Images) & Media Files ---
 STATIC_URL = 'static/'
 
 # --- 生产环境 vs 开发环境 配置分离 ---
@@ -114,21 +114,29 @@ if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # 2. 媒体文件配置 (阿里云 OSS) - [关键修改]
+    # 2. 媒体文件配置 (阿里云 OSS) - [最终正确版]
     DEFAULT_FILE_STORAGE = 'django_oss_storage.storage.OssMediaStorage'
+    
+    # 凭证 (从Render的环境变量中读取)
     OSS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
     OSS_ACCESS_KEY_SECRET = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
     
-    OSS_BUCKET_NAME = 'research-review-system-qt'  # <--- 请替换为您的Bucket名称
-    # Endpoint现在需要包含协议 'https://'
-    OSS_ENDPOINT = 'oss-cn-chengdu.aliyuncs.com' # <--- 请根据您的Bucket区域替换
-    
-    # MEDIA_URL 设置为桶内的一个文件夹路径，库会自动拼接域名
-    MEDIA_URL = '/media/'
+    # 桶和区域信息 (根据您的实际情况填写)
+    OSS_BUCKET_NAME = 'research-review-system-qt'
+    # Endpoint 必须是纯域名，不带 https://
+    OSS_ENDPOINT = 'oss-cn-chengdu.aliyuncs.com'
 
+    # 使用 S3 兼容设置来强制生成正确的、带域名的URL
+    AWS_S3_CUSTOM_DOMAIN = f'{OSS_BUCKET_NAME}.{OSS_ENDPOINT}'
+    # 所有上传的文件都将保存在桶内的 'media' 文件夹下
+    AWS_LOCATION = 'media'
+    # 最终生成的媒体文件URL，确保是完整的绝对路径
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+    
     # 3. 跨域请求安全配置 (CORS)
     CORS_ALLOWED_ORIGINS = [
-        'https://research-review-system.vercel.app', # <--- 请替换为您的Vercel前端网址
+        # 请务必将这里替换为您的Vercel前端最终的生产域名
+        'https://research-review-system.vercel.app', 
     ]
 
 else:
@@ -141,10 +149,10 @@ else:
     # 2. 跨域请求配置 (允许所有，方便开发)
     CORS_ALLOW_ALL_ORIGINS = True
 
-# Default primary key field type
+# --- Default primary key field type ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# DRF的全局配置
+# --- DRF的全局配置 ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
@@ -152,8 +160,8 @@ REST_FRAMEWORK = {
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
 }
 
-# django-allauth 需要这个设置
+# --- django-allauth 需要这个设置 ---
 SITE_ID = 1
 
-# 在开发阶段，我们暂时设置为无需邮件验证，方便测试
+# --- 在开发阶段，我们暂时设置为无需邮件验证，方便测试 ---
 ACCOUNT_EMAIL_VERIFICATION = 'none'
