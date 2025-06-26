@@ -118,9 +118,16 @@ if not DEBUG:
     DEFAULT_FILE_STORAGE = 'django_oss_storage.storage.OssMediaStorage'
     OSS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
     OSS_ACCESS_KEY_SECRET = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
-    OSS_BUCKET_NAME = 'research-review-system-qt'  # <--- 请替换为您的Bucket名称
-    OSS_ENDPOINT = 'https://oss-cn-chengdu.aliyuncs.com' # <--- 请根据您的Bucket区域替换
     
+    # --- 以下是关键修改 ---
+    OSS_BUCKET_NAME = 'research-review-system-qt'  # <--- 请替换为您的Bucket名称
+    # Endpoint 只需填写域名部分，不要加 https://
+    OSS_ENDPOINT = 'oss-cn-chengdu.aliyuncs.com' # <--- 请根据您的Bucket区域替换
+    
+    # 我们在这里手动构建一个完整的、绝对的MEDIA_URL
+    # 这样可以确保Django在任何情况下都生成指向OSS的正确URL
+    MEDIA_URL = f'https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/media/'
+
     # 3. 跨域请求安全配置 (CORS)
     CORS_ALLOWED_ORIGINS = [
         'https://research-review-system.vercel.app', # <--- 请替换为您的Vercel前端网址
@@ -135,7 +142,6 @@ else:
     
     # 2. 跨域请求配置 (允许所有，方便开发)
     CORS_ALLOW_ALL_ORIGINS = True
-
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
