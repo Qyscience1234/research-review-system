@@ -13,9 +13,11 @@ django-allauth==65.9.0
 django-cors-headers==4.7.0
 django-oss-storage==1.1.1
 djangorestframework==3.16.0
+gunicorn==23.0.0
 idna==3.10
 jmespath==0.10.0
 oss2==2.19.1
+packaging==25.0
 psycopg2-binary==2.9.10
 pycparser==2.22
 pycryptodome==3.23.0
