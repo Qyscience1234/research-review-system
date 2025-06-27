@@ -17,7 +17,6 @@ from .serializers import (
 from .permissions import IsAdminUser, IsReviewerUser
 
 # --- 1. 为项目负责人(PI)创建一个功能完整的ViewSet ---
-# 这个ViewSet将取代之前的 ProjectListView 和 ProjectDetailView
 class ProjectViewSet(viewsets.ModelViewSet):
     """
     一个为项目负责人(PI)提供的完整视图集。
@@ -39,7 +38,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """
         serializer.save(
             principal_investigator=self.request.user,
-            status='draft'  # <--- 关键改动：新项目默认为草稿
+            status='draft'
         )
 
     @action(detail=True, methods=['post'], url_path='submit')
@@ -51,19 +50,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if project.status not in ['draft', 'revision_needed']:
             return Response({'error': '此项目状态不正确，无法提交。'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 检查是否已上传必需的文件（例如：项目申报书）
         if not project.files.filter(file_type='proposal').exists():
             return Response({'error': '提交失败，请至少上传一份项目申报书。'}, status=status.HTTP_400_BAD_REQUEST)
 
         project.status = 'submitted'
         project.save()
         
-        # 返回更新后的项目数据
         response_serializer = self.get_serializer(project)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 
-# --- 2. 管理员和专家的视图保持不变 ---
+# --- 2. 管理员和专家的视图 ---
 
 class AdminProjectViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -108,6 +105,7 @@ class AdminProjectViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'], url_path='return-for-revision')
     def return_for_revision(self, request, pk=None):
         """
@@ -115,7 +113,6 @@ class AdminProjectViewSet(viewsets.ReadOnlyModelViewSet):
         """
         project = self.get_object()
         
-        # 只有“待初审”(submitted)状态的项目才能被退回
         if project.status != 'submitted':
             return Response({'error': '此项目状态不正确，无法退回。'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -123,12 +120,10 @@ class AdminProjectViewSet(viewsets.ReadOnlyModelViewSet):
         if not reason:
             return Response({'error': '必须提供退回原因。'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 更新项目状态和管理员意见
         project.status = 'revision_needed'
         project.admin_notes = reason
         project.save()
 
-        # 返回更新后的项目数据
         response_serializer = ProjectSerializer(project)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -156,6 +151,7 @@ class ExpertReviewViewSet(viewsets.ModelViewSet):
         project.status = 'awaiting_decision'
         project.save()
 
+# --- 3. 文件上传视图 ---
 class ProjectFileUploadView(generics.CreateAPIView):
     """
     一个为特定项目上传文件的视图。
@@ -164,11 +160,30 @@ class ProjectFileUploadView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    # --- 以下是唯一的修改点 ---
     def perform_create(self, serializer):
+        # 首先，获取关联的项目，这部分逻辑保持不变
         project_pk = self.kwargs.get('pk')
         project = generics.get_object_or_404(
             Project.objects.all(), 
             pk=project_pk, 
             principal_investigator=self.request.user
         )
-        serializer.save(project=project)
+        
+        # 使用 try...except 来捕获并记录上传过程中可能发生的任何错误
+        try:
+            # 尝试保存文件到OSS并创建数据库记录
+            serializer.save(project=project)
+            
+            # 如果成功，打印一条日志方便我们确认
+            print("--- UPLOAD DEBUG: File uploaded successfully via serializer.save(). ---")
+
+        except Exception as e:
+            # 如果在 .save() 过程中出现任何异常，将其捕获
+            # 并在Render的日志中打印出详细信息
+            print("--- UPLOAD FAILED: An exception occurred during serializer.save()! ---")
+            print(f"--- Exception Type: {type(e)}")
+            print(f"--- Exception Details: {e}")
+            
+            # 将原始异常重新抛出，这样前端也能收到一个标准的服务器错误响应
+            raise e
