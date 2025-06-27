@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount', 
     'dj_rest_auth.registration',
     'api',
-    # --- 关键修改：将 django_oss_storage 替换为 storages ---
-    'storages',
+    # --- 关键修改：使用 django_oss_storage ---
+    'django_oss_storage',
 ]
 
 MIDDLEWARE = [
@@ -114,26 +114,25 @@ if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # 2. 媒体文件配置 (使用 S3 兼容模式连接阿里云 OSS)
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # 2. 媒体文件配置 (阿里云 OSS - 原生SDK模式)
+    DEFAULT_FILE_STORAGE = 'django_oss_storage.storage.OssMediaStorage'
     
-    # 凭证 (从Render的环境变量中读取，变量名使用AWS标准)
-    AWS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
+    # 凭证 (从Render的环境变量中读取)
+    OSS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
+    OSS_ACCESS_KEY_SECRET = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
     
-    # 阿里云 OSS S3兼容模式配置
-    AWS_STORAGE_BUCKET_NAME = 'research-review-system-qt'
-    AWS_S3_REGION_NAME = 'cn-chengdu'  # 区域名称，不带 oss- 前缀
-    AWS_S3_ENDPOINT_URL = f'https://oss-cn-chengdu.aliyuncs.com'
+    # 桶和区域信息 (根据您测试成功的配置填写)
+    OSS_BUCKET_NAME = 'research-review-system-qt'
+    # Endpoint 必须包含协议 'https://'
+    OSS_ENDPOINT = 'https://oss-cn-chengdu.aliyuncs.com'
 
-    # 强制生成正确的、带域名的URL
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.oss-cn-chengdu.aliyuncs.com'
-    AWS_LOCATION = 'media'  # 所有文件都将保存在桶内的 'media' 文件夹下
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+    # MEDIA_URL 不再需要手动拼接，django-oss-storage 会自动处理
+    MEDIA_URL = '/'
     
     # 3. 跨域请求安全配置 (CORS)
     CORS_ALLOWED_ORIGINS = [
-        'https://research-review-system.vercel.app', # 请替换为您的Vercel前端生产域名
+        # 请务必将这里替换为您的Vercel前端最终的生产域名
+        'https://research-review-system.vercel.app', 
     ]
 
 else:
