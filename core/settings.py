@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount', 
     'dj_rest_auth.registration',
     'api',
-    # --- 新增：添加django-oss-storage ---
-    'django_oss_storage',
+    # --- 关键修改：将 django_oss_storage 替换为 storages ---
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -114,39 +114,33 @@ if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # 2. 媒体文件配置 (阿里云 OSS) - [最终正确版]
-    DEFAULT_FILE_STORAGE = 'django_oss_storage.storage.OssMediaStorage'
+    # 2. 媒体文件配置 (使用 S3 兼容模式连接阿里云 OSS)
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
-    # 凭证 (从Render的环境变量中读取)
-    OSS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
-    OSS_ACCESS_KEY_SECRET = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
+    # 凭证 (从Render的环境变量中读取，变量名使用AWS标准)
+    AWS_ACCESS_KEY_ID = os.environ.get('ALIYUN_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('ALIYUN_ACCESS_KEY_SECRET')
     
-    # 桶和区域信息 (根据您的实际情况填写)
-    OSS_BUCKET_NAME = 'research-review-system-qt'
-    # Endpoint 必须是纯域名，不带 https://
-    OSS_ENDPOINT = 'oss-cn-chengdu.aliyuncs.com'
+    # 阿里云 OSS S3兼容模式配置
+    AWS_STORAGE_BUCKET_NAME = 'research-review-system-qt'
+    AWS_S3_REGION_NAME = 'cn-chengdu'  # 区域名称，不带 oss- 前缀
+    AWS_S3_ENDPOINT_URL = f'https://oss-cn-chengdu.aliyuncs.com'
 
-    # 使用 S3 兼容设置来强制生成正确的、带域名的URL
-    AWS_S3_CUSTOM_DOMAIN = f'{OSS_BUCKET_NAME}.{OSS_ENDPOINT}'
-    # 所有上传的文件都将保存在桶内的 'media' 文件夹下
-    AWS_LOCATION = 'media'
-    # 最终生成的媒体文件URL，确保是完整的绝对路径
+    # 强制生成正确的、带域名的URL
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.oss-cn-chengdu.aliyuncs.com'
+    AWS_LOCATION = 'media'  # 所有文件都将保存在桶内的 'media' 文件夹下
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
     
     # 3. 跨域请求安全配置 (CORS)
     CORS_ALLOWED_ORIGINS = [
-        # 请务必将这里替换为您的Vercel前端最终的生产域名
-        'https://research-review-system.vercel.app', 
+        'https://research-review-system.vercel.app', # 请替换为您的Vercel前端生产域名
     ]
 
 else:
     # --- 开发环境配置 (Development) ---
     
-    # 1. 媒体文件配置 (本地存储)
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
-    
-    # 2. 跨域请求配置 (允许所有，方便开发)
     CORS_ALLOW_ALL_ORIGINS = True
 
 # --- Default primary key field type ---
@@ -165,3 +159,4 @@ SITE_ID = 1
 
 # --- 在开发阶段，我们暂时设置为无需邮件验证，方便测试 ---
 ACCOUNT_EMAIL_VERIFICATION = 'none'
+
