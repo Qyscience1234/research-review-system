@@ -1,8 +1,13 @@
 # api/views.py
 
-# --- 新增: 导入uuid库用于生成随机文件名 ---
-import uuid
+# --- 新增的导入 ---
 import os
+import uuid
+import oss2
+from datetime import datetime
+from django.conf import settings # 用于获取配置信息
+
+# --- 其他导入保持不变 ---
 from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -19,7 +24,7 @@ from .serializers import (
 )
 from .permissions import IsAdminUser, IsReviewerUser
 
-# --- 其他视图保持不变 ---
+# --- 其他视图保持不变，我们只修改文件上传视图 ---
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -100,51 +105,72 @@ class ExpertReviewViewSet(viewsets.ModelViewSet):
         project.status = 'awaiting_decision'
         project.save()
 
-# --- 文件上传视图（关键修改） ---
+# --- 文件上传视图（最终手动上传方案） ---
 class ProjectFileUploadView(generics.CreateAPIView):
-    """
-    一个为特定项目上传文件的视图。
-    """
     serializer_class = ProjectFileSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
-    def perform_create(self, serializer):
-        # 1. 获取关联的项目，这部分逻辑保持不变
+    # 我们重写 create 方法以获得完全控制权
+    def create(self, request, *args, **kwargs):
+        # 1. 从请求中获取数据
+        uploaded_file = request.data.get('file')
+        file_type = request.data.get('file_type')
         project_pk = self.kwargs.get('pk')
+
+        if not uploaded_file:
+            return Response({"file": ["No file provided."]}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. 获取关联的项目
         project = generics.get_object_or_404(
             Project.objects.all(), 
             pk=project_pk, 
             principal_investigator=self.request.user
         )
-        
-        # 2. 从请求中获取上传的文件对象
-        uploaded_file = self.request.data.get('file')
-        if not uploaded_file:
-            # 如果没有文件，提前返回错误
-            raise serializers.ValidationError("No file provided.")
 
-        # --- 以下是唯一的修改点 ---
-        # 3. 强制创建一个安全的、纯英文的文件名，排除所有编码问题
+        # 3. 创建一个安全的、唯一的OSS文件名
         original_extension = os.path.splitext(uploaded_file.name)[1]
         safe_filename = f"{uuid.uuid4()}{original_extension}"
         
-        # 将这个安全的文件名重新赋值给上传的文件对象
-        uploaded_file.name = safe_filename
-        
-        print(f"--- UPLOAD DEBUG: Attempting to upload file. Original name: {uploaded_file.name}, Safe name: {safe_filename} ---")
+        # 4. 定义文件在OSS中的完整路径
+        #    注意: Django FileField 的 upload_to 会自动处理日期
+        #    我们需要手动模拟它
+        object_key = os.path.join('project_files', datetime.now().strftime('%Y/%m/%d'), safe_filename)
 
         try:
-            # 4. 尝试使用新的安全文件名保存文件
-            instance = serializer.save(project=project, file=uploaded_file)
+            # 5. 使用原生SDK进行上传 (代码逻辑来自我们测试成功的脚本)
+            print(f"--- MANUAL UPLOAD: Attempting to upload to OSS with key: {object_key} ---")
+            auth = oss2.Auth(settings.OSS_ACCESS_KEY_ID, settings.OSS_ACCESS_KEY_SECRET)
+            bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.OSS_BUCKET_NAME)
             
-            # 5. 如果代码能执行到这里，打印出Django认为的最终文件URL
-            print("--- UPLOAD SUCCESS (according to Django): File saved. ---")
-            print(f"--- Generated URL: {instance.file.url} ---")
+            # 使用 put_object 方法，它可以直接处理内存中的文件对象
+            result = bucket.put_object(object_key, uploaded_file)
+            
+            # 确认阿里云返回了成功的状态码
+            if result.status != 200:
+                raise Exception(f"OSS returned non-200 status: {result.status}")
+
+            print("--- MANUAL UPLOAD: OSS upload reported success. ---")
+
+            # 6. 文件已在云端，现在我们在数据库里创建记录
+            #    我们手动创建ProjectFile对象，而不是调用serializer.save()
+            project_file = ProjectFile.objects.create(
+                project=project,
+                file_type=file_type,
+                file=object_key  # file字段现在只存储在OSS上的路径
+            )
+            
+            # 7. 手动序列化新创建的对象并返回给前端
+            serializer = self.get_serializer(project_file)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            # 6. 如果在 .save() 过程中出现任何异常，将其捕获
-            print("--- UPLOAD FAILED: An exception occurred during serializer.save()! ---")
+            # 捕获任何可能的错误并清晰地报告
+            print("--- MANUAL UPLOAD FAILED: An exception occurred! ---")
             print(f"--- Exception Type: {type(e)}")
             print(f"--- Exception Details: {e}")
-            raise e
+            return Response(
+                {"error": "File could not be uploaded.", "details": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
