@@ -10,7 +10,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-pu+ol3i)9#)t&fze$a)%nb!c^df0!g6h0zcqg5$yzoqe2hr=8d')
 
 # 让部署平台自动控制DEBUG的开关
-# 'RENDER'是Render平台自带的环境变量，如果存在，则说明在生产环境
 DEBUG = 'RENDER' not in os.environ
 
 # 允许您的云平台域名访问应用
@@ -38,13 +37,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount', 
     'dj_rest_auth.registration',
     'api',
-    # --- 关键修改：使用 django_oss_storage ---
     'django_oss_storage',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # --- 生产环境修改：添加WhiteNoise中间件，位置很重要 ---
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -79,9 +76,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # --- 生产环境修改：使用dj_database_url配置数据库 ---
 DATABASES = {
     'default': dj_database_url.config(
-        # 本地开发时，如果没有设置DATABASE_URL环境变量，则继续使用SQLite
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        # 保持数据库连接的持久性
         conn_max_age=600
     )
 }
@@ -123,15 +118,17 @@ if not DEBUG:
     
     # 桶和区域信息 (根据您测试成功的配置填写)
     OSS_BUCKET_NAME = 'research-review-system-qt'
-    # Endpoint 必须包含协议 'https://'
     OSS_ENDPOINT = 'https://oss-cn-chengdu.aliyuncs.com'
 
-    # MEDIA_URL 不再需要手动拼接，django-oss-storage 会自动处理
-    MEDIA_URL = '/'
+    # --- 关键修改 ---
+    # 明确告诉库我们的桶是公共读的
+    OSS_PUBLIC_READ = True
+    
+    # MEDIA_URL 设置为桶的公开访问域名基础路径
+    MEDIA_URL = f'https://{OSS_BUCKET_NAME}.oss-cn-chengdu.aliyuncs.com/'
     
     # 3. 跨域请求安全配置 (CORS)
     CORS_ALLOWED_ORIGINS = [
-        # 请务必将这里替换为您的Vercel前端最终的生产域名
         'https://research-review-system.vercel.app', 
     ]
 
@@ -142,20 +139,14 @@ else:
     MEDIA_ROOT = BASE_DIR / 'media'
     CORS_ALLOW_ALL_ORIGINS = True
 
-# --- Default primary key field type ---
+# --- 其他配置保持不变 ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# --- DRF的全局配置 ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
 }
-
-# --- django-allauth 需要这个设置 ---
 SITE_ID = 1
-
-# --- 在开发阶段，我们暂时设置为无需邮件验证，方便测试 ---
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 
